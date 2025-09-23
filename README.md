@@ -4,6 +4,7 @@
 
 **1. Reconnaissance**
 
+
 Start the vulnhub VM. Perform a network scan to identify the target machine’s IP address.
 On windows, I use ‘Zenmap’ (Nmap GUI) and netdiscover in kali.
 Match the network’s MAC address to confirm the target :
@@ -22,6 +23,8 @@ The Nmap scan result  found a DNS linked to the IP.  terratest.earth.local and e
 
 
 **2. Weaponization & Deliver**
+
+
 To access these domains, add them to the local hosts file.
 
 Windows: C:\Windows\System32\drivers\etc\hosts → Edit with Notepad (Admin) and add the IP + DNS.
@@ -46,6 +49,8 @@ Attempt to access the target’s web interface:
 
 
 **3. Exploitation**
+
+
 Scan for vulnerabilities using Gobuster.
 First target: earth.local — scan both HTTP and HTTPS (results may differ).
 
@@ -167,6 +172,8 @@ The server may freeze, but the Netcat listener will receive a shell.
 
 **5. Command & Control**
 
+
+
 Verify access with ```whoami```
 
 
@@ -234,6 +241,7 @@ After creating all required files, Run the ```reset_root``` again. You see that 
 
 
 **7. Actions on Objective**
+
 
 Now go to vulnhub machine. 
 Login as ‘root’ with the password : Earth
